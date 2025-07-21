@@ -12,14 +12,11 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
-from environs import Env
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-# load_dotenv(BASE_DIR / ".env")
-env = Env()
-env.read_env()
+load_dotenv(BASE_DIR / ".env")
 
 # print("====== ENV TEST START ======")
 # print("DJ_SECRET_KEY:", repr(os.getenv("DJ_SECRET_KEY")))
@@ -32,7 +29,7 @@ env.read_env()
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env.str("DJ_SECRET_KEY")
+SECRET_KEY = os.getenv("DJ_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -91,11 +88,11 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env.str("DB_NAME"),
-        'USER': env.str("DB_USER"),
-        'PASSWORD': env.str("DB_PASSWORD"),
-        'HOST': env.str("DB_HOST"),
-        'PORT': env.int("DB_PORT")
+        'NAME': os.getenv("DB_NAME"),
+        'USER': os.getenv("DB_USER"),
+        'PASSWORD': os.getenv("DB_PASSWORD"),
+        'HOST': os.getenv("DB_HOST"),
+        'PORT': os.getenv("DB_PORT")
     }
 }
 
@@ -137,8 +134,8 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-MEDIA_ROOT = 'media/'
-MEDIAFILES_DIRS = BASE_DIR / 'media'
+MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = '/media/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
