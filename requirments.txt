@@ -1,0 +1,5 @@
+django>=5.0.0
+psycopg
+psycopg2
+python-dotenv
+environs
