@@ -14,11 +14,11 @@ class UserProfile(models.Model):
         ("engaged", "Engaged"),
     ]
 
-    # followers = models.ManyToManyField(
-    #     to=User,
-    #     blank=True,
-    #     related_name="followers_of"
-    # )
+    followers = models.ManyToManyField(
+        to=User,
+        blank=True,
+        related_name="followers_of"
+    )
     user = models.OneToOneField(to=User, on_delete=models.CASCADE)
     bio = models.CharField(max_length=150, null=True, blank=True)
     pic = models.ImageField(upload_to="media/assets/images/avatars/", default="media/assets/images/avatars/avatar-1.jpg")

@@ -4,6 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib import messages
 from .models import UserProfile
+from django.core.validators import validate_email
 
 User = get_user_model()
 
@@ -20,12 +21,35 @@ class ProfileSettingsView(LoginRequiredMixin, View):
         pass
     
 class SigninPageView(View):
+
     template_name = "signin.html"
+
+    def is_email(self, value):
+        try:
+            validate_email(value=value)
+            return True
+        except:
+            return False
+
     def get(self, req, *args, **kwargs):
         return render(request=req, template_name=self.template_name)
 
     def post(self, request, *args, **kwargs):
-        pass
+        username_or_email = request.POST.get("username_or_email")
+        password = request.POST.get("password")
+        if self.is_email(username_or_email):
+            user=authenticate(email=username_or_email, password=password)
+            if user is None:
+                messages.error(request=request, message="Email or password is wrong!!!")
+                return redirect("login")
+        else:
+            user = authenticate(username=username_or_email, password=password)
+            if user is None:
+                messages.error(request=request, message="Username or password is wrong!!!")
+                return redirect("login")
+        print(user)
+        login(request=request, user=user)
+        return redirect("home")
 
 class SignupPageView(View):
     template_name = "signup.html"
@@ -56,8 +80,8 @@ class SignupPageView(View):
                                             email=email,
                                             password=password1)
             user.save()
-            # authenticate(request=request, user=user)
-            # login(request=request, user=user)
+            authenticate(request=request, user=user)
+            login(request=request, user=user)
 
             # Set profile
             profile = UserProfile.objects.create(user=user)
