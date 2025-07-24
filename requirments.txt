@@ -3,3 +3,5 @@ psycopg
 psycopg2
 python-dotenv
 environs
+Pillow
+django-bootstrap-v5
