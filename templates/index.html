@@ -171,10 +171,11 @@
                         </a>
                         <div uk-drop="mode: click;offset:9" class="header_dropdown profile_dropdown border-t">
                             <ul>
-                                <li><a href="setting.html"> Account setting </a> </li>
+                                <li>{{ user.username }}</li>
+                                <hr>
+                                <li><a href="{% url 'profile' %}"> Account setting </a> </li>
                                 <li><a href="explore.html">explore </a> </li>
-                                <li><a href="#"> Help </a> </li>
-                                <li><a href="signin.html"> Log Out</a></li>
+                                <li><a href="{% url 'logout' %}"> Log Out</a></li>
                             </ul>
                         </div>
 
@@ -571,7 +572,7 @@
                                                     class="uil-grin-tongue-wink"> </i> </p>
                                             <div class="absolute w-3 h-3 top-3 -left-1 bg-gray-100 transform rotate-45 "></div>
                                         </div>
-                                    </div>
+                                        </div>
                                     <div class="flex">
                                         <div class="w-10 h-10 rounded-full relative flex-shrink-0">
                                             <img src="/media/assets/images/avatars/avatar-1.jpg" alt="" class="absolute h-full rounded-full w-full">
