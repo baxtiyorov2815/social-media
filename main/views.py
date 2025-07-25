@@ -9,4 +9,5 @@ class HomePageView(LoginRequiredMixin, View):
         template_name = 'index.html'
         user = request.user
         profile = UserProfile.objects.get(user=user)
+        print("image: ", profile.pic.url)
         return render(request=request, template_name=template_name, context={"user": user, "profile": profile})

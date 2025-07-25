@@ -16,7 +16,7 @@ class UserProfile(models.Model):
         ("none", "None"),
         ("single", "Single"),
         ("in_a_rel", "In a relationship"),
-        ("merried", "merried"),
+        ("merried", "Merried"),
         ("engaged", "Engaged"),
     ]
 
@@ -27,7 +27,7 @@ class UserProfile(models.Model):
     )
     user = models.OneToOneField(to=User, on_delete=models.CASCADE)
     bio = models.CharField(max_length=150, null=True, blank=True)
-    pic = models.ImageField(upload_to="media/assets/images/avatars/", default="media/assets/images/avatars/avatar-1.jpg")
+    pic = models.ImageField(upload_to="media/assets/images/avatars/", default="assets/images/avatars/avatar-1.jpg")
     locations = models.CharField(max_length=150, null=True, blank=True)
     working_at = models.CharField(max_length=55, null=True, blank=True)
 

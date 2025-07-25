@@ -167,14 +167,14 @@
                         <!-- profile -->
 
                         <a href="#">
-                            <img src="/media/assets/images/avatars/avatar-2.jpg" class="header-avatar" alt="">
+                            <img src="{{ profile.pic.url }}" class="header-avatar" alt="">
                         </a>
                         <div uk-drop="mode: click;offset:9" class="header_dropdown profile_dropdown border-t">
                             <ul>
                                 <li>{{ user.username }}</li>
                                 <hr>
-                                <li><a href="{% url 'profile' %}"> Account setting </a> </li>
-                                <li><a href="explore.html">explore </a> </li>
+                                <li><a href="{% url 'profile_settings' %}"> Account setting </a> </li>
+                                <li><a href="{% url 'profile' %}">Profile </a> </li>
                                 <li><a href="{% url 'logout' %}"> Log Out</a></li>
                             </ul>
                         </div>
