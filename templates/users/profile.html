@@ -1,166 +1,169 @@
+{% extends 'users/base.html' %}
 {% load static %}
 
-<!DOCTYPE html>
-<html lang="en">
+{% block head %}
+<a href="{% url 'home' %}">Home</a> / Account Setting / profile / <b>{{ user.username }}</b>
+{% endblock head %}
+
+{% block style %}
+<style>
+    .post-wrapper {
+        position: relative;
+        overflow: hidden;
+    }
+    .post-wrapper img {
+        transition: transform 0.3s ease;
+        object-fit: cover;
+        aspect-ratio: 1 / 1;
+    }
+    .post-wrapper:hover img {
+        transform: scale(1.03);
+    }
+    .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.4);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.2rem;
+    }
+    .post-wrapper:hover .overlay {
+        opacity: 1;
+    }
+</style>
+{% endblock style %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Profile Info -->
+    <div class="bg-white p-4 rounded shadow d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <img src="{{ profile.pic.url }}" class="rounded-circle me-4" width="90" height="90" alt="Avatar">
+            <div>
+                <h4 class="mb-1">{{ user.username }}</h4>
+                <p class="text-muted mb-0">{{ profile.bio|default:"No bio" }}</p>
+                <small class="text-muted">{{ profile.locations|default:"No location" }}</small>
+            </div>
+        </div>
+        <div>
+            {% if request.user != profile.user %}
+                <form method="post">
+                    {% csrf_token %}
+                    {% if request.user in profile.followers.all %}
+                        <button type="submit" class="btn btn-outline-danger">Unfollow</button>
+                    {% else %}
+                        <button type="submit" class="btn btn-primary">Follow</button>
+                    {% endif %}
+                </form>
+            {% else %}
+                <a href="{% url 'profile_settings' %}" class="btn btn-outline-secondary">Edit Profile</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="bg-white d-flex justify-around text-center py-3 mt-3 rounded shadow">
+        <div class="col">
+            <h5>{{ posts_count|default:"0" }}</h5>
+            <p class="text-muted">Posts</p>
+        </div>
+        <div class="col">
+            <a href="{% url 'followers' user.username %}" class="text-decoration-none text-dark">
+                <h5>{{ followers_count }}</h5>
+                <p class="text-muted">Followers</p>
+            </a>
+        </div>
+        <div class="col">
+            <a href="{% url 'following' user.username %}" class="text-decoration-none text-dark">
+                <h5>{{ following_count }}</h5>
+                <p class="text-muted">Following</p>
+            </a>
+        </div>
+    </div>
+
+    <!-- Posts Grid -->
+    {% if posts %}
+    <div class="row mt-4">
+        {% for post in posts %}
+        <div class="col-4 mb-4">
+            <div class="post-wrapper">
+                <a href="#" data-bs-toggle="modal" data-bs-target="#postModal{{ post.id }}">
+                    <img src="{{ post.image.url }}" class="img-fluid w-100" alt="Post image">
+                    <div class="overlay text-white fw-bold">
+                        <i class="fas fa-heart me-2"></i> {{ post.no_of_likes }}
+                    </div>
+                </a>
+            </div>
+
+            <!-- Modal -->
+            <div class="modal fade" id="postModal{{ post.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-centered">
+                    <div class="modal-content position-relative" style="max-height: 90vh; overflow: hidden;">
+
+                        <div class="modal-body d-flex p-0">
+
+                            <!-- Left Side: Image -->
+                            <div class="col-7 bg-black d-flex justify-content-center align-items-center">
+                                <img src="{{ post.image.url }}" class="img-fluid" alt="Post image">
+                            </div>
+
+                            <!-- Right Side: Details -->
+                            <div class="col-5 p-3 d-flex flex-column justify-content-between" style="max-height: 90vh; overflow-y: auto;">
+
+                                <!-- User Info -->
+                                <div class="d-flex align-items-center mb-3">
+                                    <img src="{{ post.user.userprofile.pic.url }}" class="rounded-circle me-2" width="40" height="40" alt="User">
+                                    <strong>{{ post.user.username }}</strong>
+                                </div>
+
+                                <!-- Comments Section -->
+                                <div class="flex-grow-1 mb-3 d-flex flex-column justify-content-between">
+
+                                    <!-- Existing comments (hozircha yo‘q) -->
+                                    <div class="mb-3">
+                                        <p class="text-muted">No comments yet.</p>
+                                        <!-- Keyinchalik bu yerga for loop orqali commentlar chiqadi -->
+                                    </div>
+
+                                    <!-- Add Comment Form -->
+                                    <form method="post" action="" class="d-flex">
+                                        <input type="text" name="comment" class="form-control me-2" placeholder="Add a comment..." required>
+                                        <button type="submit" class="btn btn-primary">Post</button>
+                                    </form>
+                                </div>
+
+                                <!-- Likes and Time -->
+                                <div>
+                                    <p><i class="fas fa-heart text-danger me-2"></i> {{ post.no_of_likes }} likes</p>
+                                    <p class="text-muted small">{{ post.created_at|date:"F j, Y, H:i" }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ❗️ X Button – modal-content ICHIDA joylashgan -->
+                        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                    </div>
+                </div>
+            </div>
+            <!-- End Modal -->
 
 
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="" />
-    <meta name="keywords" content="" />
-	<title>Profile - {{username}}</title>
-   <!-- <link rel="icon" href="images/fav.png" type="image/png" sizes="16x16"> -->
-    
-    <link rel="stylesheet" href="{% static 'css/main.min.css' %}">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <link rel="stylesheet" href="{% static 'css/color.css' %}">
-    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center mt-4 text-muted">
+        <p>No posts yet.</p>
+    </div>
+    {% endif %}
 
-</head>
-<body>
-<!--<div class="se-pre-con"></div>-->
-<div class="theme-layout">
-	
-	</div>
-	
-	<section>
-			<div class="feature-photo">
-				<figure><img src="{% static 'images/resources/timeline-1.jpg' %}" alt=""></figure>
-				<form>
-					<div class="add-btn">
-					<span style="color: white; font-size: 27px; margin-right: 520px;"><b><u><a href="/">Home</a></u></b></span>
-					<span style="color: white; font-size: 27px;"><b>11 Post</b></span>
-					<span style="color: white; font-size: 27px;"><b>1.7m followers</b></span>
-					<span style="color: white; font-size: 27px;"><b>3.5k following</b></span>
-					<a href="" title="" data-ripple=""><button style="background-color: #ffc0cb; border: #ffc0cb;">Follow</button></a>
-					
-					</div>
-				</form>
-
-				<!-- <form class="edit-phto">
-					<i class="fa fa-camera-retro"></i>
-					<label class="fileContainer">
-						Upload Cover Photo
-					<input type="file"/>
-					</label>
-				</form> -->
-				<div class="container-fluid">
-					<div class="row merged">
-						<div class="col-lg-2 col-sm-3">
-							<div class="user-avatar">
-								<figure>
-									<img src="https://cdn.business2community.com/wp-content/uploads/2017/08/blank-profile-picture-973460_640.png" style="height: 250px; width: 100%;" alt="">
-									<form class="edit-phto">
-										<i class="fa fa-camera-retro"></i>
-										<label class="fileContainer">
-											<a href="#account-settings">Upload Profile Photo</a>
-										</label>
-									</form>
-								</figure>
-							</div>
-						</div>
-						<div class="col-lg-10 col-sm-9">
-							<div class="timeline-info">
-								<ul>
-									<li class="admin-name">
-									  <h5 style="color: black;white-space: nowrap; width: 110px; font-size: 27px;"><b>@username</b><!--<i class="fa fa-check-circle" style="color: #48dbfb;" aria-hidden="true"></i>--></h5>
-									  <!--<span>Group Admin</span>-->
-									</li>
-									<!--<li>
-										<a class="" href="javascript:void(0)" title="" data-ripple="">Go live!</a>
-										<a class="" href="javascript:void(0)" title="" data-ripple="">Music</a>
-										<a class="" href="emporium/index-3.html" title="" data-ripple="">Emporium</a>
-										<a class="" href="fitness/index.html" title="" data-ripple="">Health Inspection</a>
-										<a class="" href="settings/account-setting.html" title="" data-ripple="">Settings</a>
-										<a class="" href="javascript:void(0)" title="" data-ripple="">Upload</a>
-										<a class="" href="time-line.html" title="" data-ripple="">time line</a>
-										<a class="" href="timeline-photos.html" title="" data-ripple="">Photos</a>
-										<a class="" href="timeline-videos.html" title="" data-ripple="">Videos</a>
-										<a class="" href="timeline-friends.html" title="" data-ripple="">Friends</a>
-										<a class="" href="timeline-groups.html" title="" data-ripple="">Groups</a>
-										<a class="" href="about.html" title="" data-ripple="">about</a>
-										<a class="" href="#" title="" data-ripple="">more</a>
-
-									</li>-->
-								</ul>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</section><!-- top area -->
-		<section>
-			<div class="bio">
-				Bio goes here...
-			</div>
-		</section>
-		
-	<section>
-		<div class="gap gray-bg">
-			<div class="container-fluid">
-				<div class="row">
-					<div class="col-lg-12">
-						<div class="row" id="page-contents">
-							<div class="col-lg-3">
-								<aside class="sidebar static">
-									
-									
-									
-								</aside>
-							</div><!-- sidebar -->
-							
-
-
-
-
-
-
-
-
-
-							<div class="col-lg-6">
-								<div class="central-meta">
-									<ul class="photos">
-					
-										<li>
-											<a class="strip" href="https://cdn.business2community.com/wp-content/uploads/2017/08/blank-profile-picture-973460_640.png" title="" data-strip-group="mygroup" data-strip-group-options="loop: false">
-												<img src="https://cdn.business2community.com/wp-content/uploads/2017/08/blank-profile-picture-973460_640.png" style="height: 250px; width: 300px;" alt=""></a>
-										</li>
-
-										<li>
-											<a class="strip" href="https://cdn.business2community.com/wp-content/uploads/2017/08/blank-profile-picture-973460_640.png" title="" data-strip-group="mygroup" data-strip-group-options="loop: false">
-												<img src="https://cdn.business2community.com/wp-content/uploads/2017/08/blank-profile-picture-973460_640.png" style="height: 250px; width: 300px;" alt=""></a>
-										</li>
-
-										<li>
-											<a class="strip" href="https://cdn.business2community.com/wp-content/uploads/2017/08/blank-profile-picture-973460_640.png" title="" data-strip-group="mygroup" data-strip-group-options="loop: false">
-												<img src="https://cdn.business2community.com/wp-content/uploads/2017/08/blank-profile-picture-973460_640.png" style="height: 250px; width: 300px;" alt=""></a>
-										</li>
-										
-										
-									</ul>
-									<!--<div class="lodmore"><button class="btn-view btn-load-more"></button></div>-->
-								</div><!-- photos -->
-							</div><!-- centerl meta -->
-							<div class="col-lg-3">
-								<aside class="sidebar static">
-									
-								</aside>
-							</div><!-- sidebar -->
-						</div>	
-					</div>
-				</div>
-			</div>
-		</div>	
-	</section>
-
-	
-	
-	<script data-cfasync="false" src="{% static '../../cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js' %}"></script><script src="js/main.min.js"></script>
-	<script src="{% static 'js/script.js' %}"></script>
-
-</body>	
-
-
-</html>
+</div>
+{% endblock content %}

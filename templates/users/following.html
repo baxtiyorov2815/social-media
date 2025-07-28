@@ -1,0 +1,41 @@
+{% extends 'users/base.html' %}
+{% block head %}
+    <a href="{% url 'home' %}">Home</a> / Account Setting / Following / <b>{{ user.username }}</b>
+{% endblock head %}
+
+{% block content %}
+<br>
+<div class="max-w-2xl mx-auto bg-white p-6 rounded shadow">
+    <h2 class="text-2xl font-semibold mb-4">Following</h2>
+
+    <ul>
+        {% for following in following_users %}
+            <li class="flex items-center justify-between mb-4">
+                <!-- Chapdagi profil ma’lumotlari -->
+                <div class="flex items-center">
+                    <img src="{{ following.userprofile.pic.url }}" alt="avatar"
+                         class="w-12 h-12 rounded-full mr-4 object-cover">
+                    <div>
+                        <a href="{% url 'profile' following.username %}" class="text-blue-600 font-medium">
+                            {{ following.username }}
+                        </a>
+                        <p class="text-sm text-gray-500">{{ following.userprofile.bio|default:"No bio" }}</p>
+                    </div>
+                </div>
+                {% if user == request.user %}
+                <!-- O'ngdagi Cancel tugmasi -->
+                <form method="post" action="{% url 'following' following.username %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="btn btn-danger">
+                        Cancel
+                    </button>
+                </form>
+                {% endif %}
+            </li>
+        {% empty %}
+            <p class="text-gray-500">You’re not following anyone yet.</p>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock content %}
