@@ -9,6 +9,7 @@ class Post(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     user = models.ForeignKey(to=User, on_delete=models.CASCADE)
     image = models.ImageField(upload_to="assets/images/post/")
+    desc = models.TextField(default="hello world")
     created_at = models.DateTimeField(default=datetime.now())
     no_of_likes = models.IntegerField(default=0)
 
