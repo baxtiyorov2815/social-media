@@ -26,3 +26,10 @@ class HomePageView(LoginRequiredMixin, View):
         }
 
         return render(request=request, template_name=self.template_name, context=context)
+    
+class PostUpload(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        pass
+    def post(self, request, *args, **kwargs):
+        image = request.FILES.get('image')
+        print(image)
