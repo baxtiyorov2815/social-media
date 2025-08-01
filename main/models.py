@@ -15,3 +15,14 @@ class Post(models.Model):
 
     def __str__(self):
         return self.user.username
+    
+class LikePost(models.Model):
+    post = models.ForeignKey(to=Post,
+                             on_delete=models.CASCADE,
+                             )
+    user = models.ForeignKey(to=User,
+                             on_delete=models.CASCADE,
+                             )
+    
+    def __str__(self):
+        return self.user.username
