@@ -26,3 +26,4 @@ class LikePost(models.Model):
     
     def __str__(self):
         return self.user.username
+    

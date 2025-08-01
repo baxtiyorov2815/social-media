@@ -8,8 +8,11 @@ from django.contrib import messages
 from PIL import Image
 from io import BytesIO
 from django.shortcuts import get_object_or_404
-from django.urls import reverse
-from django.http import HttpResponseRedirect
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+import random
+
+User = get_user_model()
 
 def images_are_equal(img1, img2):
     return list(img1.getdata()) == list(img2.getdata())
@@ -33,13 +36,30 @@ class HomePageView(LoginRequiredMixin, View):
         # Mapping: user.id → profile
         profile_map = { profile.user_id: profile for profile in profiles }
 
+        users = User.objects.all()
+        user_profiles = UserProfile.objects.all()
+        users_followed = []
+        for user_profile in user_profiles:
+            if user in user_profile.followers.all():
+                users_followed.append(user_profile)
+        user_suggestions = [ x for x in list(users) if (x not in users_followed) ][:5]
+        if user in user_suggestions:
+            user_suggestions.remove(user)
+        now = timezone.now()
+
+        for suggest in user_suggestions:
+            suggest.days = (now-suggest.date_joined).days
+
+        random.shuffle(user_suggestions)
+
         context = {
             'user': user,
             'profiles': profiles,
             'profile': profile,
             'posts': posts,
             'profile_map': profile_map,
-            'liked_posts': liked_posts
+            'liked_posts': liked_posts,
+            'user_suggestions': user_suggestions,
         }
 
         return render(request=request, template_name=self.template_name, context=context)

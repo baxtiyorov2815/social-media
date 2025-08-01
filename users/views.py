@@ -5,6 +5,7 @@ from .models import UserProfile
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from main.models import Post
+from django.http import JsonResponse
 
 User = get_user_model()
 
@@ -127,3 +128,23 @@ class FollowingView(LoginRequiredMixin, View):
         user2_profile = UserProfile.objects.get(user=user2)
         user2_profile.followers.remove(current_user)
         return redirect("following", request.user.username)
+    
+
+class FollowUser(LoginRequiredMixin, View):
+    def post(self, request, username, *args, **kwargs):
+        current_user = request.user
+        print(username)
+        print(current_user.username)
+        user_to_follow = User.objects.get(username=username)
+        user_to_follow_profile = UserProfile.objects.get(user=user_to_follow)
+
+        
+        if current_user in user_to_follow_profile.followers.all():
+            user_to_follow_profile.followers.remove(current_user)
+            following = False
+        else:
+            user_to_follow_profile.followers.add(current_user)
+            following = True
+
+
+        return JsonResponse({"following": following, "follower_count": user_to_follow_profile.followers.count()})

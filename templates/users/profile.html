@@ -142,7 +142,16 @@
 
                                 <!-- Likes and Time -->
                                 <div>
-                                    <p><i class="fas fa-heart text-danger me-2"></i> {{ post.no_of_likes }} likes</p>
+                                    <form class="like-form" data-post-id="{{ post.id }}" method="POST" action="{% url 'like_post' post.id %}">
+                                        {% csrf_token %}
+                                        <button type="button" class="like-btn" data-post-id="{{ post.id }}" style="background:none; border:none;">
+                                            {% if post.id in liked_posts %}
+                                                ❤️ <span class="like-count">{{ post.no_of_likes }}</span>
+                                            {% else %}
+                                                🤍 <span class="like-count">{{ post.no_of_likes }}</span>
+                                            {% endif %}
+                                        </button>
+                                    </form>
                                     <p class="text-muted small">{{ post.created_at|date:"F j, Y, H:i" }}</p>
                                 </div>
                             </div>
@@ -168,3 +177,36 @@
 
 </div>
 {% endblock content %}
+
+{% block js %}
+
+ <!-- AJAX Like button uchun kod -->
+    <script>
+        $(document).ready(function () {
+            $(".like-btn").click(function () {
+                const postId = $(this).data("post-id");
+                const $form = $(this).closest(".like-form");
+                const csrfToken = $form.find("input[name='csrfmiddlewaretoken']").val();
+                const $btn = $(this);
+                const $likeCount = $btn.find(".like-count");
+
+                $.ajax({
+                    url: `/like-post/${postId}/`,
+                    type: "POST",
+                    headers: { "X-CSRFToken": csrfToken },
+                    success: function (response) {
+                        if (response.liked) {
+                            $btn.html(`❤️ <span class="like-count">${response.like_count}</span>`);
+                        } else {
+                            $btn.html(`🤍 <span class="like-count">${response.like_count}</span>`);
+                        }
+                    },
+                    error: function () {
+                        alert("Xatolik yuz berdi. Iltimos, qaytadan urinib ko‘ring.");
+                    }
+                });
+            });
+        });
+    </script>
+
+{% endblock js %}
