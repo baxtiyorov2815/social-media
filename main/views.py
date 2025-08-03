@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect
 from django.views import View
 from users.models import UserProfile
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import Post, LikePost
+from .models import Post, LikePost, Comment
 from django.contrib import messages
 from PIL import Image
 from io import BytesIO
@@ -36,21 +36,23 @@ class HomePageView(LoginRequiredMixin, View):
         # Mapping: user.id → profile
         profile_map = { profile.user_id: profile for profile in profiles }
 
-        users = User.objects.all()
         user_profiles = UserProfile.objects.all()
-        users_followed = []
+        user_suggestions = []
         for user_profile in user_profiles:
-            if user in user_profile.followers.all():
-                users_followed.append(user_profile)
-        user_suggestions = [ x for x in list(users) if (x not in users_followed) ][:5]
+            if user not in user_profile.followers.all():
+                user_suggestions.append(user_profile.user)
         if user in user_suggestions:
             user_suggestions.remove(user)
+
+
         now = timezone.now()
 
         for suggest in user_suggestions:
             suggest.days = (now-suggest.date_joined).days
 
         random.shuffle(user_suggestions)
+
+        comments = Comment.objects.all()
 
         context = {
             'user': user,
@@ -60,6 +62,7 @@ class HomePageView(LoginRequiredMixin, View):
             'profile_map': profile_map,
             'liked_posts': liked_posts,
             'user_suggestions': user_suggestions,
+            'comments': comments,
         }
 
         return render(request=request, template_name=self.template_name, context=context)
@@ -125,3 +128,36 @@ class LikePostView(LoginRequiredMixin, View):
             'liked': liked_status,
             'like_count': post.no_of_likes
         })
+    
+
+class AddCommentView(LoginRequiredMixin, View):
+    def post(self, request, comment_id, post_id, *args, **kwargs):
+        
+        parent = None
+        text = request.POST.get('comment')
+        
+        if comment_id != 'None':
+            parent = Comment.objects.get(id=int(comment_id))
+            text = request.POST.get('text')
+        
+        author = request.user
+        post = Post.objects.get(id=post_id)
+
+        print(text)
+
+        if parent != None:
+            comment = Comment.objects.create(parent=parent, post=post, author=author, text=text)
+        
+        else:
+            comment = Comment.objects.create(post=post, author=author, text=text)
+
+        comment.save()
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({
+                'username': comment.author.username,
+                'text': comment.text,
+                'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M')
+            })
+
+        return redirect('home')

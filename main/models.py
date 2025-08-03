@@ -27,3 +27,15 @@ class LikePost(models.Model):
     def __str__(self):
         return self.user.username
     
+class Comment(models.Model):
+    parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="replies")
+    post = models.ForeignKey(to=Post, on_delete=models.CASCADE, related_name="comments")
+    author = models.ForeignKey(to=User, on_delete=models.CASCADE)
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.author.username} - {self.text[:30]}'
+    
+    def is_reply(self):
+        return self.parent is not None
