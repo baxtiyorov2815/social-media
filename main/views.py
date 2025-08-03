@@ -6,7 +6,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import Post, LikePost, Comment
 from django.contrib import messages
 from PIL import Image
-from io import BytesIO
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -21,6 +20,19 @@ class HomePageView(LoginRequiredMixin, View):
     login_url = "/auth/login/"
     template_name = 'index.html'
     def get(self, request):
+
+        query = request.GET.get("q", "")
+        results = []
+        if query:
+            users = User.objects.filter(username__icontains=query)[:10]
+            for user in users:
+                if user == request.user:
+                    continue
+                results.append({"id": user.id, "username": user.username})
+
+            print(results)
+            
+            return JsonResponse({"results": results})
 
         liked_posts = []
 
@@ -54,6 +66,7 @@ class HomePageView(LoginRequiredMixin, View):
 
         comments = Comment.objects.all()
 
+        print(profile.pic, profile.pic.url)
         context = {
             'user': user,
             'profiles': profiles,
