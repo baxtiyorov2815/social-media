@@ -34,6 +34,7 @@ class ProfileSettingsView(LoginRequiredMixin, View):
         private = request.POST.get("private")
         show_activity = request.POST.get("show_activity")
         allow_comms = request.POST.get("allow_comms")
+        pic = request.FILES.get("avatar")
 
         user = request.user
         profile = UserProfile.objects.get(user=user)
@@ -51,6 +52,8 @@ class ProfileSettingsView(LoginRequiredMixin, View):
         profile.private = bool(private)
         profile.show_activity = bool(show_activity)
         profile.allow_comms = bool(allow_comms)
+        if pic:
+            profile.pic=pic
 
         profile.save()
         messages.info(request=request, message=f"Account: {user.username} changed succesfully!!!")

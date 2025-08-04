@@ -65,8 +65,7 @@ class HomePageView(LoginRequiredMixin, View):
         random.shuffle(user_suggestions)
 
         comments = Comment.objects.all()
-
-        print(profile.pic, profile.pic.url)
+        
         context = {
             'user': user,
             'profiles': profiles,
