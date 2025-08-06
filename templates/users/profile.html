@@ -92,16 +92,16 @@
     {% if posts %}
     <div class="row mt-4">
         {% for post in posts %}
-        <div class="col-4 mb-4">
-            <div class="post-wrapper">
-                <a href="#" data-bs-toggle="modal" data-bs-target="#postModal{{ post.id }}">
-                    <img src="{{ post.image.url }}" class="img-fluid w-100" alt="Post image">
-                    <div class="overlay text-white fw-bold">
-                        <i class="fas fa-heart me-2"></i> {{ post.no_of_likes }}
-                        <i class="fas fa-comment ms-4 me-2"></i> 10
-                    </div>
-                </a>
-            </div>
+            <div class="col-4 mb-4">
+                <div class="post-wrapper">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#postModal{{ post.id }}">
+                        <img src="{{ post.image.url }}" class="img-fluid w-100" alt="Post image">
+                        <div class="overlay text-white fw-bold">
+                            <i class="fas fa-heart me-2"></i> {{ post.no_of_likes }}
+                            <i class="fas fa-comment ms-4 me-2"></i> {{ post.comments.all.count }}
+                        </div>
+                    </a>
+                </div>
 
             <!-- Modal -->
             <div class="modal fade" id="postModal{{ post.id }}" tabindex="-1" aria-hidden="true">
@@ -120,25 +120,75 @@
 
                                 <!-- User Info -->
                                 <div class="d-flex align-items-center mb-3">
-                                    <img src="{{ post.user.userprofile.pic.url }}" class="rounded-circle me-2" width="40" height="40" alt="User">
+                                    <img src="{{ post.user.userprofile.pic.url }}" class="w-10 h-10 rounded-full object-cover me-2" width="40" height="40" alt="User">
                                     <strong>{{ post.user.username }}</strong>
                                 </div>
 
-                                <!-- Comments Section -->
-                                <div class="flex-grow-1 mb-3 d-flex flex-column justify-content-between">
+                                <div class="flex-grow-1 overflow-auto px-3 py-2">
+                                    {% if post.user.userprofile.allow_comms %}
+                                    <h1><strong>Comments</strong></h1>
+                                    <br>
+                                        {% for comment in post.comments.all %}
+                                            {% if not comment.parent %}
+                                                <div style="margin-bottom: 20px;">
+                                                    <strong><a href="{% url 'profile' comment.author.username %}">@{{ comment.author.username }}</a></strong>: {{ comment.text }}
 
-                                    <!-- Existing comments (hozircha yo‘q) -->
-                                    <div class="mb-3">
-                                        <p class="text-muted">No comments yet.</p>
-                                        <!-- Keyinchalik bu yerga for loop orqali commentlar chiqadi -->
-                                    </div>
+                                                    <!-- Reply tugmasi yangi qatorga tushadi -->
+                                                    <div style="margin-top: 5px; display: flex; align-items: center; gap: 10px;">
+                                                        <p style="margin: 0; font-size: 14px; color: gray;">{{ comment.created_at }}</p>
+                                                        <a href="#" class="reply-toggle" data-comment-id="{{ comment.id }}" style="font-size: 14px;">↪ Reply</a>
+                                                    </div>
 
-                                    <!-- Add Comment Form -->
-                                    <form method="post" action="" class="d-flex">
-                                        <input type="text" name="comment" class="form-control me-2" placeholder="Add a comment..." required>
-                                        <button type="submit" class="btn btn-primary">Post</button>
-                                    </form>
+                                                    <!-- Nested replies -->
+                                                    {% for reply in comment.replies.all %}
+                                                        <div style="margin-left: 30px; margin-top: 10px;">
+                                                            <strong><a href="{% url 'profile' reply.author.username %}">@{{ reply.author.username }}</a></strong>: {{ reply.text }}
+                                                        </div>
+                                                    {% endfor %}
+
+                                                    <!-- Reply form -->
+                                                    <div id="reply-form-{{ comment.id }}" class="reply-form" style="display: none; margin-left: 30px; margin-top: 5px;">
+                                                        <form method="post"
+                                                            action="{% url 'add_comment' comment.id post.id  %}"
+                                                            class="ajax-reply-form"
+                                                            data-comment-id="{{ comment.id }}"
+                                                            data-post-id="{{ post.id }}">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                                                            <textarea name="text" rows="2" placeholder="Write a reply..." style="width: 100%;"></textarea><br>
+                                                            <button type="submit">Reply</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <p>Comments are not allowed for this user's posts</p>
+                                    {% endif %}
+
+
                                 </div>
+
+                                <!-- Caption & Time -->
+                                <div class="px-3 border-top">
+                                <p class="mt-2"><strong>{{ post.user.username }}</strong> {{ post.caption }}</p>
+                                <p class="text-muted small">{{ post.created_at|date:"Y-m-d H:i" }}</p>
+                                </div>
+
+                                <!-- Like/Comment Count -->
+                                <div class="px-3 pb-3">
+                                <span>❤️ {{ post.no_of_likes }} &nbsp;&nbsp; 💬 {{ post.comments.all.count }}</span>
+                                <br>
+                                {{ post.desc|slice:":50" }}
+                                </div>
+                                {% if post.user.userprofile.allow_comms %}
+                                    <form method="POST" action="{% url 'add_comment' None post.id %}" class="border-top d-flex px-3 py-2">
+                                        {% csrf_token %}
+                                        <input type="text" name="comment" placeholder="Komment yozing..." class="form-control me-2" required>
+                                        <button type="submit" class="btn btn-primary">Yuborish</button>
+                                    </form>
+                                {% endif %}
+                            </div>
 
                                 <!-- Likes and Time -->
                                 <div>
@@ -208,5 +258,52 @@
             });
         });
     </script>
+
+    <script>
+    $(document).ready(function () {
+        // Reply tugmasini bosganda formani ko‘rsatish
+        $(document).on('click', '.reply-toggle', function (e) {
+            e.preventDefault();
+            const commentId = $(this).data('comment-id');
+            console.log("Clicked reply for comment ID:", commentId);
+            $('#reply-form-' + commentId).toggle();
+        });
+
+        // Reply formani AJAX orqali yuborish
+        $(document).on('submit', '.ajax-reply-form', function (e) {
+            e.preventDefault();
+
+            const form = $(this);
+            const commentId = form.data('comment-id');
+            const postId = form.data('post-id');
+            const text = form.find('textarea[name="text"]').val();
+            const csrfToken = form.find('input[name="csrfmiddlewaretoken"]').val();
+
+            $.ajax({
+                type: 'POST',
+                url: `/add-comment/${commentId}/${postId}/`,
+                data: {
+                    text: text,
+                    csrfmiddlewaretoken: csrfToken
+                },
+                success: function (data) {
+                    const replyHTML = `
+                        <div style="margin-left: 30px; margin-top: 10px;">
+                            <strong><a href="/profile/${data.username}">@${data.username}</a></strong>: ${data.text}
+                        </div>
+                    `;
+                    form.closest('.reply-form').before(replyHTML);
+
+                    form.trigger("reset");
+                },
+
+                error: function (xhr) {
+                    alert("Xatolik yuz berdi.");
+                    console.log(xhr.responseText);
+                }
+            });
+        });
+    });
+</script>
 
 {% endblock js %}

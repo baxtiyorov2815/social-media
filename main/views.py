@@ -1,14 +1,16 @@
 from django.http import JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from users.models import UserProfile
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import Post, LikePost, Comment
+from .models import Post, LikePost, Comment, Notification
 from django.contrib import messages
 from PIL import Image
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 import random
 
 User = get_user_model()
@@ -45,9 +47,6 @@ class HomePageView(LoginRequiredMixin, View):
         user = request.user
         profile = UserProfile.objects.get(user=user)
 
-        # Mapping: user.id → profile
-        profile_map = { profile.user_id: profile for profile in profiles }
-
         user_profiles = UserProfile.objects.all()
         user_suggestions = []
         for user_profile in user_profiles:
@@ -66,19 +65,54 @@ class HomePageView(LoginRequiredMixin, View):
 
         comments = Comment.objects.all()
         
+        notifications = Notification.objects.filter(user=user).order_by("-created_at")
+        unread_count = Notification.objects.filter(user=user, is_read=False).count()
+
         context = {
             'user': user,
             'profiles': profiles,
             'profile': profile,
             'posts': posts,
-            'profile_map': profile_map,
             'liked_posts': liked_posts,
             'user_suggestions': user_suggestions,
             'comments': comments,
+            'unread_count': unread_count,
+            'notifications': notifications[:5]
         }
 
         return render(request=request, template_name=self.template_name, context=context)
     
+class NotificationView(LoginRequiredMixin, View):
+    def get(self, reqeust, notification_id, *args, **kwargs):
+        notification = get_object_or_404(Notification, id=notification_id, user=reqeust.user)
+
+        notification.is_read = True
+        notification.save()
+
+        return JsonResponse(notification.get_target_data())
+
+class UnreadNotificationCountView(LoginRequiredMixin, View):
+    def get(self, request):
+        count = request.user.received_notifications.filter(is_read=False).count()
+        return JsonResponse({'count': count})
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class MarkAllNotificationsReadView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        try:
+            updated = request.user.received_notifications.filter(is_read=False).update(is_read=True)
+
+            return JsonResponse({
+                'status': 'succes',
+                'marked_read': updated
+            })
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+
 class PostUpload(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         image = request.FILES.get('image')
@@ -99,6 +133,18 @@ class PostUpload(LoginRequiredMixin, View):
         user = request.user
         post = Post.objects.create(user=user, image=image, desc=desc)
         post.save()
+
+        profile = UserProfile.objects.get(user=user)
+        followers = profile.followers.all()
+
+        for follower in followers:
+            Notification.objects.create(
+                user=follower,
+                sender=user,
+                message=f"{user} posted a new photo",
+                notification_type='post',
+                content_id=str(post.id)
+            )
         
         messages.success(request=request, message="Post has been created succesfully")
 
@@ -134,6 +180,14 @@ class LikePostView(LoginRequiredMixin, View):
             post.no_of_likes += 1
             liked_status = True
 
+            Notification.objects.create(
+                user=post.user,
+                sender=user,
+                message=f"{user} liked your post",
+                notification_type='like',
+                content_id=str(post.id)
+            )
+
         post.save()
 
         return JsonResponse({
@@ -159,9 +213,25 @@ class AddCommentView(LoginRequiredMixin, View):
 
         if parent != None:
             comment = Comment.objects.create(parent=parent, post=post, author=author, text=text)
-        
+
+            Notification.objects.create(
+                user=parent.author,
+                sender=author,
+                message=f"{author.username} replied your comment",
+                notification_type='reply',
+                content_id=str(comment.id)
+            )
+
         else:
             comment = Comment.objects.create(post=post, author=author, text=text)
+
+            Notification.objects.create(
+                user=post.user,
+                sender=author,
+                message=f"{author.username} commented on your post",
+                notification_type="comment",
+                content_id=str(comment.id)
+            )
 
         comment.save()
 

@@ -48,6 +48,46 @@
 .post-hover-container:hover .hover-info {
     opacity: 1;
 }
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #ec4899;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-links-item {
+    position: relative;
+    display: inline-block;
+}
+.highlight {
+    background-color: #fffde7;
+    transition: background-color 0.5s ease;
+    border-left: 3px solid #ffd600;
+    padding-left: 10px;
+    animation: fadeHighlight 3s;
+}
+.notification-item.unread {
+    background-color: #f0f7ff;
+}
+
+.mark-all-read {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.mark-all-read:hover {
+    text-decoration: underline;
+}
 </style>
 
 
@@ -152,8 +192,44 @@
                                 Your Video size Must be Maxmium 999MB
                             </div>
                         </div>
-
-
+                        <!-- Notification -->
+                        <a href="#" class="header-links-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="1em" height="1em" preserveAspectRatio="xMidYMid meet" viewBox="0 0 24 24"><g fill="none"><path d="M12 22a2.02 2.02 0 0 1-2.01-2h4a2.02 2.02 0 0 1-.15.78a2.042 2.042 0 0 1-1.44 1.18h-.047A1.922 1.922 0 0 1 12 22zm8-3H4v-2l2-1v-5.5a8.065 8.065 0 0 1 .924-4.06A4.654 4.654 0 0 1 10 4.18V2h4v2.18c2.579.614 4 2.858 4 6.32V16l2 1v2z" fill="currentColor"/></g></svg>
+                            {% if unread_count > 0 %}
+                            <span class="notification-badge">{{ unread_count }}</span>
+                            {% endif %}
+                        </a>
+                        <div uk-drop="mode: click;offset: 4" class="header_dropdown">
+                            <div class="flex justify-between items-center -mt-5 -mx-5 bg-gradient-to-t from-gray-100 to-gray-50 border-b px-6 py-3">
+                                    <h4 class="font-bold">
+                                        Notifications {% if unread_count > 0 %}<span class="text-pink-500">({{ unread_count }} new)</span>{% endif %}
+                                    </h4>
+                                    <button class="mark-all-read text-xs text-blue-500 hover:text-blue-700">
+                                        Mark all read
+                                    </button>
+                                </div>
+                            <ul class="dropdown_scrollbar" data-simplebar>
+                                {% for notification in notifications %}
+                                    <li class="{% if not notification.is_read %}bg-gray-50{% endif %}">
+                                        <a href="#" class="notification-link" data-notification-id="{{ notification.id }}">
+                                            <div class="drop_avatar"> 
+                                                <img src="{{ notification.sender.userprofile.pic.url }}" alt="{{ notification.sender.username }}">
+                                            </div>
+                                            <div class="drop_content">
+                                                <p><strong>@{{ notification.sender.username }}</strong></p>
+                                                <span class="time-ago">{{ notification.message }}</span>
+                                                <small class="text-gray-500">{{ notification.created_at|timesince }} ago</small>
+                                            </div>
+                                        </a>
+                                    </li>
+                                {% empty %}
+                                    <li class="px-4 py-3">No notifications yet.</li>
+                                {% endfor %}
+                            </ul>
+                            {% if notifications %}
+                                <a href="#" class="see-all">See all notifications</a>
+                            {% endif %}
+                        </div>
                         <!-- profile -->
 
                         <a href="#">
@@ -187,7 +263,7 @@
 
                             <div class="card-header d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center gap-2">
-                            <img src="{{ post.user.userprofile.pic.url }}" class="rounded-circle" width="40" height="40" alt="Profil rasmi">
+                            <img src="{{ post.user.userprofile.pic.url }}" class="w-14 h-14 rounded-full object-cover me-2" alt="Profil rasmi">
                             <a href="{% url 'profile' post.user.username %}"><strong>@{{ post.user.username }}</strong></a>
                         </div>
 
@@ -262,43 +338,46 @@
                                 </div>
                                 <!-- Comments Section -->
                                 <div class="flex-grow-1 overflow-auto px-3 py-2">
+                                    {% if post.user.userprofile.allow_comms %}
                                     <h1><strong>Comments</strong></h1>
                                     <br>
+                                        {% for comment in post.comments.all %}
+                                            {% if not comment.parent %}
+                                                <div style="margin-bottom: 20px;">
+                                                    <strong><a href="{% url 'profile' comment.author.username %}">@{{ comment.author.username }}</a></strong>: {{ comment.text }}
 
-                                    {% for comment in post.comments.all %}
-                                        {% if not comment.parent %}
-                                            <div style="margin-bottom: 20px;">
-                                                <strong><a href="{% url 'profile' comment.author.username %}">@{{ comment.author.username }}</a></strong>: {{ comment.text }}
-
-                                                <!-- Reply tugmasi yangi qatorga tushadi -->
-                                                <div style="margin-top: 5px; display: flex; align-items: center; gap: 10px;">
-                                                    <p style="margin: 0; font-size: 14px; color: gray;">{{ comment.created_at }}</p>
-                                                    <a href="#" class="reply-toggle" data-comment-id="{{ comment.id }}" style="font-size: 14px;">↪ Reply</a>
-                                                </div>
-
-                                                <!-- Nested replies -->
-                                                {% for reply in comment.replies.all %}
-                                                    <div style="margin-left: 30px; margin-top: 10px;">
-                                                        <strong><a href="{% url 'profile' reply.author.username %}">@{{ reply.author.username }}</a></strong>: {{ reply.text }}
+                                                    <!-- Reply tugmasi yangi qatorga tushadi -->
+                                                    <div style="margin-top: 5px; display: flex; align-items: center; gap: 10px;">
+                                                        <p style="margin: 0; font-size: 14px; color: gray;">{{ comment.created_at }}</p>
+                                                        <a href="#" class="reply-toggle" data-comment-id="{{ comment.id }}" style="font-size: 14px;">↪ Reply</a>
                                                     </div>
-                                                {% endfor %}
 
-                                                <!-- Reply form -->
-                                                <div id="reply-form-{{ comment.id }}" class="reply-form" style="display: none; margin-left: 30px; margin-top: 5px;">
-                                                    <form method="post"
-                                                          action="{% url 'add_comment' comment.id post.id  %}"
-                                                          class="ajax-reply-form"
-                                                          data-comment-id="{{ comment.id }}"
-                                                          data-post-id="{{ post.id }}">
-                                                        {% csrf_token %}
-                                                        <input type="hidden" name="parent_id" value="{{ comment.id }}">
-                                                        <textarea name="text" rows="2" placeholder="Write a reply..." style="width: 100%;"></textarea><br>
-                                                        <button type="submit">Reply</button>
-                                                    </form>
+                                                    <!-- Nested replies -->
+                                                    {% for reply in comment.replies.all %}
+                                                        <div style="margin-left: 30px; margin-top: 10px;">
+                                                            <strong><a href="{% url 'profile' reply.author.username %}">@{{ reply.author.username }}</a></strong>: {{ reply.text }}
+                                                        </div>
+                                                    {% endfor %}
+
+                                                    <!-- Reply form -->
+                                                    <div id="reply-form-{{ comment.id }}" class="reply-form" style="display: none; margin-left: 30px; margin-top: 5px;">
+                                                        <form method="post"
+                                                            action="{% url 'add_comment' comment.id post.id  %}"
+                                                            class="ajax-reply-form"
+                                                            data-comment-id="{{ comment.id }}"
+                                                            data-post-id="{{ post.id }}">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                                                            <textarea name="text" rows="2" placeholder="Write a reply..." style="width: 100%;"></textarea><br>
+                                                            <button type="submit">Reply</button>
+                                                        </form>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        {% endif %}
-                                    {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <p>Comments are not allowed for this user's posts</p>
+                                    {% endif %}
 
 
                                 </div>
@@ -315,11 +394,13 @@
                                 <br>
                                 {{ post.desc|slice:":50" }}
                                 </div>
-                                <form method="POST" action="{% url 'add_comment' None post.id %}" class="border-top d-flex px-3 py-2">
-                                {% csrf_token %}
-                                <input type="text" name="comment" placeholder="Komment yozing..." class="form-control me-2" required>
-                                <button type="submit" class="btn btn-primary">Yuborish</button>
-                                </form>
+                                {% if post.user.userprofile.allow_comms %}
+                                    <form method="POST" action="{% url 'add_comment' None post.id %}" class="border-top d-flex px-3 py-2">
+                                        {% csrf_token %}
+                                        <input type="text" name="comment" placeholder="Komment yozing..." class="form-control me-2" required>
+                                        <button type="submit" class="btn btn-primary">Yuborish</button>
+                                    </form>
+                                {% endif %}
                             </div>
                             </div>
                         </div>
@@ -514,54 +595,121 @@
             });
         });
     </script>
-
 <script>
-    $(document).ready(function () {
-        // Reply tugmasini bosganda formani ko‘rsatish
-        $(document).on('click', '.reply-toggle', function (e) {
-            e.preventDefault();
-            const commentId = $(this).data('comment-id');
-            console.log("Clicked reply for comment ID:", commentId);
-            $('#reply-form-' + commentId).toggle();
-        });
+$(document).ready(function() {
+    // Handle main comment submission
+    $('form[action*="/add-comment/None/"]').on('submit', function(e) {
+        e.preventDefault();
+        const form = $(this);
+        const postId = form.attr('action').split('/')[3]; // Extract post ID from URL
+        submitComment(postId);
+    });
 
-        // Reply formani AJAX orqali yuborish
-        $(document).on('submit', '.ajax-reply-form', function (e) {
-            e.preventDefault();
+    // Handle reply submission
+    $(document).on('submit', '.ajax-reply-form', function(e) {
+        e.preventDefault();
+        const form = $(this);
+        const postId = form.data('post-id');
+        const parentCommentId = form.data('comment-id');
+        submitComment(postId, parentCommentId);
+    });
 
-            const form = $(this);
-            const commentId = form.data('comment-id');
-            const postId = form.data('post-id');
-            const text = form.find('textarea[name="text"]').val();
-            const csrfToken = form.find('input[name="csrfmiddlewaretoken"]').val();
+    // Function to handle both main comments and replies
+    function submitComment(postId, parentCommentId = null) {
+        const form = parentCommentId 
+            ? $(`#reply-form-${parentCommentId} form`)
+            : $(`form[action*="/add-comment/None/${postId}/"]`);
+        
+        const textarea = form.find('textarea');
+        const commentText = textarea.val().trim();
+        
+        if (!commentText) {
+            alert('Please enter a comment');
+            return;
+        }
 
-            $.ajax({
-                type: 'POST',
-                url: `/add-comment/${commentId}/${postId}/`,
-                data: {
-                    text: text,
-                    csrfmiddlewaretoken: csrfToken
-                },
-                success: function (data) {
+        const url = parentCommentId 
+            ? `/add-comment/${parentCommentId}/${postId}/`
+            : `/add-comment/None/${postId}/`;
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: {
+                text: commentText,
+                csrfmiddlewaretoken: form.find('[name=csrfmiddlewaretoken]').val(),
+                ...(parentCommentId && { parent_id: parentCommentId })
+            },
+            beforeSend: function() {
+                // Show loading indicator if needed
+                form.find('button[type="submit"]').prop('disabled', true);
+            },
+            success: function(data) {
+                // Clear the textarea
+                textarea.val('');
+                
+                // For replies
+                if (parentCommentId) {
+                    // Hide the reply form
+                    $(`#reply-form-${parentCommentId}`).hide();
+                    
+                    // Append the new reply
                     const replyHTML = `
                         <div style="margin-left: 30px; margin-top: 10px;">
                             <strong><a href="/profile/${data.username}">@${data.username}</a></strong>: ${data.text}
+                            <div style="margin-top: 5px;">
+                                <small class="text-muted">Just now</small>
+                            </div>
                         </div>
                     `;
-                    form.closest('.reply-form').before(replyHTML);
-
-                    form.trigger("reset");
-                },
-
-                error: function (xhr) {
-                    alert("Xatolik yuz berdi.");
-                    console.log(xhr.responseText);
+                    $(`#comment-${parentCommentId}`).append(replyHTML);
+                } 
+                // For main comments
+                else {
+                    // Append the new comment
+                    const commentHTML = `
+                        <div style="margin-bottom: 20px;" id="comment-${data.comment_id}">
+                            <strong><a href="/profile/${data.username}">@${data.username}</a></strong>: ${data.text}
+                            <div style="margin-top: 5px; display: flex; align-items: center; gap: 10px;">
+                                <p style="margin: 0; font-size: 14px; color: gray;">Just now</p>
+                                <a href="#" class="reply-toggle" data-comment-id="${data.comment_id}" style="font-size: 14px;">↪ Reply</a>
+                            </div>
+                            <div id="reply-form-${data.comment_id}" class="reply-form" style="display: none; margin-left: 30px; margin-top: 5px;">
+                                <form class="ajax-reply-form" data-comment-id="${data.comment_id}" data-post-id="${postId}">
+                                    <input type="hidden" name="csrfmiddlewaretoken" value="${form.find('[name=csrfmiddlewaretoken]').val()}">
+                                    <input type="hidden" name="parent_id" value="${data.comment_id}">
+                                    <textarea name="text" rows="2" placeholder="Write a reply..." style="width: 100%;"></textarea><br>
+                                    <button type="submit">Reply</button>
+                                </form>
+                            </div>
+                        </div>
+                    `;
+                    form.closest('.modal-content').find('.flex-grow-1').append(commentHTML);
+                    
+                    // Update comment count
+                    const commentCountElement = form.closest('.modal-content').find('.px-3.pb-3 span');
+                    const currentCount = parseInt(commentCountElement.text().match(/\d+/)[0]);
+                    commentCountElement.html(commentCountElement.html().replace(/💬 \d+/, `💬 ${currentCount + 1}`));
                 }
-            });
+            },
+            error: function(xhr) {
+                console.error('Error submitting comment:', xhr.responseText);
+                alert('Error submitting comment. Please try again.');
+            },
+            complete: function() {
+                form.find('button[type="submit"]').prop('disabled', false);
+            }
         });
-    });
-</script>
+    }
 
+    // Toggle reply form visibility
+    $(document).on('click', '.reply-toggle', function(e) {
+        e.preventDefault();
+        const commentId = $(this).data('comment-id');
+        $(`#reply-form-${commentId}`).toggle();
+    });
+});
+</script>
 <script>
 $(function() {
     $('#user-search-input').on('input', function() {
@@ -609,8 +757,154 @@ $(function() {
 });
 </script>
 
+<script>
+// Notification handling functions
+async function handleNotificationClick(notificationId) {
+    try {
+        const response = await fetch(`/notification/${notificationId}/`);
+        const data = await response.json();
+        
+        switch(data.type) {
+            case 'post':
+                // Open the post modal with UUID
+                openPostModal(data.content_id);
+                break;
+                
+            case 'like':
+                // Open the liked post
+                openPostModal(data.content_id);
+                break;
+                
+            case 'comment':
+                // Open the post and scroll to comment
+                openPostModal(data.post_id);
+                setTimeout(() => {
+                    highlightElement(`comment-${data.comment_id}`);
+                }, 500);
+                break;
+                
+            case 'reply':
+                // Open the post and scroll to reply
+                openPostModal(data.post_id);
+                setTimeout(() => {
+                    highlightElement(`comment-${data.content_id}`);
+                }, 500);
+                break;
+                
+            case 'follow':
+                // Redirect to follower's profile
+                window.location.href = `/user/profile/${data.sender_username}/`;
+                break;
+                
+            default:
+                console.warn('Unknown notification type:', data.type);
+        }
+        
+        updateUnreadCount();
+        
+    } catch (error) {
+        console.error('Notification error:', error);
+        alert('Error handling notification');
+    }
+}
 
+function highlightElement(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.classList.add('highlight');
+        setTimeout(() => {
+            element.classList.remove('highlight');
+        }, 3000);
+    }
+}
 
+function updateUnreadCount() {
+    fetch('/notifications/unread_count/')
+        .then(response => response.json())
+        .then(data => {
+            const badge = document.querySelector('.notification-badge');
+            if (data.count > 0) {
+                if (!badge) {
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'notification-badge';
+                    document.querySelector('.header-links-item').appendChild(newBadge);
+                }
+                document.querySelector('.notification-badge').textContent = data.count;
+            } else if (badge) {
+                badge.remove();
+            }
+        });
+}
+
+function openPostModal(postUuid) {
+    const modal = new bootstrap.Modal(document.getElementById(`postModal-${postUuid}`));
+    modal.show();
+}
+
+// Initialize notification handlers
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.notification-link').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            handleNotificationClick(this.dataset.notificationId);
+        });
+    });
+    
+    // Optional: Load initial unread count
+    updateUnreadCount();
+});
+</script>
+
+<script>
+   document.querySelector('.mark-all-read')?.addEventListener('click', async function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+        const response = await fetch('/notifications/mark_all_read/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Failed to mark all as read');
+        
+        const data = await response.json();
+        
+        // Update UI
+        document.querySelectorAll('.notification-item.unread').forEach(item => {
+            item.classList.remove('unread');
+        });
+        
+        // Update badge
+        updateUnreadCount();
+        
+    } catch (error) {
+        console.error('Error marking all as read:', error);
+        alert('Failed to mark notifications as read');
+    }
+});
+
+// Helper function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
 
 </body>
 

@@ -2,10 +2,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 from .models import UserProfile
+from main.models import Comment, Notification
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from main.models import Post
 from django.http import JsonResponse
+from django.core.exceptions import ObjectDoesNotExist
 
 User = get_user_model()
 
@@ -67,9 +69,10 @@ class ProfilePageView(LoginRequiredMixin, View):
         user = User.objects.get(username=username)
         profile = UserProfile.objects.get(user=user)
         posts = Post.objects.filter(user=user)
+        comments = Comment.objects.all()
         followers_count = profile.followers.all().count()
         following_count = User.objects.filter(userprofile__followers=user).count()
-        return render(request=request, template_name=self.template_name, context={"user": user, "posts": posts, "profile": profile, "followers_count": followers_count, "following_count": following_count})
+        return render(request=request, template_name=self.template_name, context={"user": user, "posts": posts, "profile": profile, "followers_count": followers_count, "following_count": following_count, "comments": comments})
     
     def post(self, request, username, *args, **kwargs):
         current_user = request.user
@@ -136,18 +139,27 @@ class FollowingView(LoginRequiredMixin, View):
 class FollowUser(LoginRequiredMixin, View):
     def post(self, request, username, *args, **kwargs):
         current_user = request.user
-        print(username)
-        print(current_user.username)
-        user_to_follow = User.objects.get(username=username)
-        user_to_follow_profile = UserProfile.objects.get(user=user_to_follow)
+        try:
+            user_to_follow = User.objects.get(username=username)
+            user_to_follow_profile = UserProfile.objects.get(user=user_to_follow)
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
 
-        
         if current_user in user_to_follow_profile.followers.all():
             user_to_follow_profile.followers.remove(current_user)
             following = False
         else:
             user_to_follow_profile.followers.add(current_user)
             following = True
+            Notification.objects.create(
+                user=user_to_follow,
+                sender=current_user,
+                message=f"{current_user.username} followed you",
+                notification_type="follow",
+                content_id=str(current_user.id)
+            )
 
-
-        return JsonResponse({"following": following, "follower_count": user_to_follow_profile.followers.count()})
+        return JsonResponse({
+            "following": following,
+            "follower_count": user_to_follow_profile.followers.count()
+        })
