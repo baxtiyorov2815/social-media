@@ -74,20 +74,7 @@
     padding-left: 10px;
     animation: fadeHighlight 3s;
 }
-.notification-item.unread {
-    background-color: #f0f7ff;
-}
 
-.mark-all-read {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-}
-
-.mark-all-read:hover {
-    text-decoration: underline;
-}
 </style>
 
 
@@ -595,121 +582,54 @@
             });
         });
     </script>
+
 <script>
-$(document).ready(function() {
-    // Handle main comment submission
-    $('form[action*="/add-comment/None/"]').on('submit', function(e) {
-        e.preventDefault();
-        const form = $(this);
-        const postId = form.attr('action').split('/')[3]; // Extract post ID from URL
-        submitComment(postId);
-    });
+    $(document).ready(function () {
+        // Reply tugmasini bosganda formani ko‘rsatish
+        $(document).on('click', '.reply-toggle', function (e) {
+            e.preventDefault();
+            const commentId = $(this).data('comment-id');
+            console.log("Clicked reply for comment ID:", commentId);
+            $('#reply-form-' + commentId).toggle();
+        });
 
-    // Handle reply submission
-    $(document).on('submit', '.ajax-reply-form', function(e) {
-        e.preventDefault();
-        const form = $(this);
-        const postId = form.data('post-id');
-        const parentCommentId = form.data('comment-id');
-        submitComment(postId, parentCommentId);
-    });
+        // Reply formani AJAX orqali yuborish
+        $(document).on('submit', '.ajax-reply-form', function (e) {
+            e.preventDefault();
 
-    // Function to handle both main comments and replies
-    function submitComment(postId, parentCommentId = null) {
-        const form = parentCommentId 
-            ? $(`#reply-form-${parentCommentId} form`)
-            : $(`form[action*="/add-comment/None/${postId}/"]`);
-        
-        const textarea = form.find('textarea');
-        const commentText = textarea.val().trim();
-        
-        if (!commentText) {
-            alert('Please enter a comment');
-            return;
-        }
+            const form = $(this);
+            const commentId = form.data('comment-id');
+            const postId = form.data('post-id');
+            const text = form.find('textarea[name="text"]').val();
+            const csrfToken = form.find('input[name="csrfmiddlewaretoken"]').val();
 
-        const url = parentCommentId 
-            ? `/add-comment/${parentCommentId}/${postId}/`
-            : `/add-comment/None/${postId}/`;
-
-        $.ajax({
-            url: url,
-            type: 'POST',
-            data: {
-                text: commentText,
-                csrfmiddlewaretoken: form.find('[name=csrfmiddlewaretoken]').val(),
-                ...(parentCommentId && { parent_id: parentCommentId })
-            },
-            beforeSend: function() {
-                // Show loading indicator if needed
-                form.find('button[type="submit"]').prop('disabled', true);
-            },
-            success: function(data) {
-                // Clear the textarea
-                textarea.val('');
-                
-                // For replies
-                if (parentCommentId) {
-                    // Hide the reply form
-                    $(`#reply-form-${parentCommentId}`).hide();
-                    
-                    // Append the new reply
+            $.ajax({
+                type: 'POST',
+                url: `/add-comment/${commentId}/${postId}/`,
+                data: {
+                    text: text,
+                    csrfmiddlewaretoken: csrfToken
+                },
+                success: function (data) {
                     const replyHTML = `
                         <div style="margin-left: 30px; margin-top: 10px;">
                             <strong><a href="/profile/${data.username}">@${data.username}</a></strong>: ${data.text}
-                            <div style="margin-top: 5px;">
-                                <small class="text-muted">Just now</small>
-                            </div>
                         </div>
                     `;
-                    $(`#comment-${parentCommentId}`).append(replyHTML);
-                } 
-                // For main comments
-                else {
-                    // Append the new comment
-                    const commentHTML = `
-                        <div style="margin-bottom: 20px;" id="comment-${data.comment_id}">
-                            <strong><a href="/profile/${data.username}">@${data.username}</a></strong>: ${data.text}
-                            <div style="margin-top: 5px; display: flex; align-items: center; gap: 10px;">
-                                <p style="margin: 0; font-size: 14px; color: gray;">Just now</p>
-                                <a href="#" class="reply-toggle" data-comment-id="${data.comment_id}" style="font-size: 14px;">↪ Reply</a>
-                            </div>
-                            <div id="reply-form-${data.comment_id}" class="reply-form" style="display: none; margin-left: 30px; margin-top: 5px;">
-                                <form class="ajax-reply-form" data-comment-id="${data.comment_id}" data-post-id="${postId}">
-                                    <input type="hidden" name="csrfmiddlewaretoken" value="${form.find('[name=csrfmiddlewaretoken]').val()}">
-                                    <input type="hidden" name="parent_id" value="${data.comment_id}">
-                                    <textarea name="text" rows="2" placeholder="Write a reply..." style="width: 100%;"></textarea><br>
-                                    <button type="submit">Reply</button>
-                                </form>
-                            </div>
-                        </div>
-                    `;
-                    form.closest('.modal-content').find('.flex-grow-1').append(commentHTML);
-                    
-                    // Update comment count
-                    const commentCountElement = form.closest('.modal-content').find('.px-3.pb-3 span');
-                    const currentCount = parseInt(commentCountElement.text().match(/\d+/)[0]);
-                    commentCountElement.html(commentCountElement.html().replace(/💬 \d+/, `💬 ${currentCount + 1}`));
-                }
-            },
-            error: function(xhr) {
-                console.error('Error submitting comment:', xhr.responseText);
-                alert('Error submitting comment. Please try again.');
-            },
-            complete: function() {
-                form.find('button[type="submit"]').prop('disabled', false);
-            }
-        });
-    }
+                    form.closest('.reply-form').before(replyHTML);
 
-    // Toggle reply form visibility
-    $(document).on('click', '.reply-toggle', function(e) {
-        e.preventDefault();
-        const commentId = $(this).data('comment-id');
-        $(`#reply-form-${commentId}`).toggle();
+                    form.trigger("reset");
+                },
+
+                error: function (xhr) {
+                    alert("Xatolik yuz berdi.");
+                    console.log(xhr.responseText);
+                }
+            });
+        });
     });
-});
 </script>
+
 <script>
 $(function() {
     $('#user-search-input').on('input', function() {

@@ -239,7 +239,8 @@ class AddCommentView(LoginRequiredMixin, View):
             return JsonResponse({
                 'username': comment.author.username,
                 'text': comment.text,
-                'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M')
+                'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M'),
+                'comment_id': comment.id
             })
 
         return redirect('home')

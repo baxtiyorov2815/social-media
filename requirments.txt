@@ -1,4 +1,4 @@
-django>=5.0.0
+django
 psycopg
 psycopg2
 python-dotenv
